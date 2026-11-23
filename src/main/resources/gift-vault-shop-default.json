@@ -1,0 +1,59 @@
+{
+  "gifts": {
+    "rose": {
+      "points": 5
+    },
+    "heart": {
+      "points": 10,
+      "effect": "minecraft:speed",
+      "seconds": 15,
+      "level": 1,
+      "cue": "hearts"
+    },
+    "spark": {
+      "points": -3,
+      "effect": "minecraft:glowing",
+      "seconds": 10,
+      "level": 1,
+      "cue": "drain"
+    }
+  },
+  "shop": {
+    "torches": {
+      "item": "minecraft:torch",
+      "quantity": 8,
+      "price": 5
+    },
+    "bread": {
+      "item": "minecraft:bread",
+      "quantity": 4,
+      "price": 10
+    },
+    "iron": {
+      "item": "minecraft:iron_ingot",
+      "quantity": 4,
+      "price": 25
+    }
+  },
+  "chat": {
+    "comment": true,
+    "follow": true,
+    "like": true,
+    "share": true,
+    "join": true,
+    "gift": true
+  },
+  "alerts": {
+    "sounds": true,
+    "particles": true,
+    "cooldownTicks": 20,
+    "events": {
+      "comment": "off",
+      "join": "off",
+      "like": "ping",
+      "follow": "hearts",
+      "share": "celebrate",
+      "gift": "sparkle"
+    }
+  }
+}
