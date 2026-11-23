@@ -47,6 +47,7 @@ public final class ShopChecks {
         }
         System.out.println("PASS: six starter offers, prices, display order and quiet like default");
         TikToolsChecks.run();
+        ConfigChecks.run();
     }
 
     private static void check(boolean ok, String message) {

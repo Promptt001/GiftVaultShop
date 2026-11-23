@@ -1,5 +1,14 @@
 # Configuration
 
+## Edit settings in game
+
+Run `/giftgui` as the owner of a private single-player world. Use the item categories to change the shop, gift rules, chat switches, sound and particle cues, or portrait banners. In a gift or shop list, **+ Add** creates a draft entry; select an entry to edit or remove it. Use the page arrows if there are more fields than fit on screen. For items and effects, use Minecraft identifiers such as `minecraft:torch` and `minecraft:speed`; leave the effect blank for no effect. Gift cues set to **Inherit** use the general gift cue.
+
+**Save & apply** validates the draft, writes `config/gift-vault-shop.json`, and applies it without reopening the world. Settings are shared by all worlds in this Minecraft installation; the wallet is not edited. If the underlying file changed after opening the editor, close the draft and reopen `/giftgui` to start from the newer file. If the file is already invalid, correct it by hand before opening the editor. If the menu asks for more room, lower Minecraft's GUI scale in Video Settings.
+
+TikTools connection mode, recipient and mappings are still in the separate TikTools file; the service key is not shown or edited. The editor won't remove a gift rule that the running TikTools configuration uses. New local gift rules are not automatically mapped to live gifts.
+
+
 This file covers local game rules. For the separate `gift-vault-tiktools.json` and how to map actual TikTools gift IDs to those rules, see [Live connection](LIVE-CONNECTION.md).
 
 Open a single-player world once to generate `config/gift-vault-shop.json` in your Fabric instance. Back up the file and save, edit the file, then leave and reopen the world. Settings apply to the whole instance; balances and processed gift identifiers are stored per world. See the [shipped defaults](../src/main/resources/gift-vault-shop-default.json) for a complete valid JavaScript Object Notation (JSON) example.

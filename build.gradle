@@ -1,5 +1,5 @@
 plugins { id 'net.fabricmc.fabric-loom' version '1.17.20' }
-version = '0.5.0'
+version = '0.6.0'
 group = 'dev.giftshop'
 loom { accessWidenerPath = file("src/main/resources/gift-vault-shop.accesswidener") }
 repositories { mavenCentral() }
@@ -16,6 +16,7 @@ tasks.register('verifyShop', JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass = 'dev.giftshop.ShopChecks'
     maxHeapSize = '384m'
+    systemProperty 'giftshop.testScratch', file('../tmp/fabric-build').absolutePath
     jvmArgs '-XX:ActiveProcessorCount=2'
 }
 check.dependsOn verifyShop

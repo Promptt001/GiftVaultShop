@@ -26,7 +26,35 @@ import static net.minecraft.commands.Commands.literal;
 public final class GiftShop implements ModInitializer {
     private static final AttachmentType<Wallet> WALLET = AttachmentRegistry.<Wallet>builder()
         .persistent(Wallet.CODEC).copyOnDeath().buildAndRegister(Identifier.parse("fabric_gift_shop:wallet"));
+    private static GiftShop instance;
     private Settings settings;
+
+    static GiftShop instance() { return instance; }
+
+    static boolean editorAllowed(net.minecraft.server.MinecraftServer server, java.util.UUID owner) {
+        if (!server.isSameThread() || !server.isRunning()) return false;
+        var player = server.getPlayerList().getPlayer(owner);
+        return player != null && allowed(player);
+    }
+
+    ConfigDraft openEditor(net.minecraft.server.MinecraftServer server, java.util.UUID owner) throws java.io.IOException {
+        if (!editorAllowed(server, owner)) throw new IllegalStateException("Only the owner of a private world can edit settings.");
+        var draft = ConfigDraft.open(Settings.path());
+        Settings.parse(draft.root);
+        return draft;
+    }
+
+    void saveEditor(net.minecraft.server.MinecraftServer server, java.util.UUID owner, ConfigDraft draft,
+                    com.google.gson.JsonObject candidate) throws java.io.IOException {
+        if (!editorAllowed(server, owner)) throw new IllegalStateException("Only the owner of a private world can save settings.");
+        settings = draft.save(Settings.path(), candidate, root -> {
+            var parsed = Settings.parse(root);
+            for (String rule : live.giftRules().values()) {
+                if (!parsed.gifts().containsKey(rule)) throw new IllegalArgumentException("TikTools still maps to gift rule: " + rule);
+            }
+            return parsed;
+        });
+    }
     private TikToolsConfig live = TikToolsConfig.OFF;
     private TikToolsFeed feed;
     private String liveStatus = "off";
@@ -36,6 +64,7 @@ public final class GiftShop implements ModInitializer {
     private final Alerts.Cooldown alertCooldown = new Alerts.Cooldown();
 
     @Override public void onInitialize() {
+        instance = this;
         if (ShopMenu.TYPE == null) throw new IllegalStateException("Shop menu not registered");
         PayloadTypeRegistry.clientboundPlay().register(AlertBannerPacket.TYPE, AlertBannerPacket.CODEC);
         CommandRegistrationCallback.EVENT.register((dispatcher, registry, environment) -> {

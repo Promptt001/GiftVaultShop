@@ -17,8 +17,12 @@ record Settings(Map<String, Rule> gifts, List<Offer> offers, Set<String> chat, A
     record Rule(int points, Holder<MobEffect> effect, int seconds, int level, Alerts.Cue cue) {}
     record Offer(String key, ItemStack stack, int price) {}
 
+    static java.nio.file.Path path() {
+        return FabricLoader.getInstance().getConfigDir().resolve("gift-vault-shop.json");
+    }
+
     static Settings load() throws IOException {
-        var path = FabricLoader.getInstance().getConfigDir().resolve("gift-vault-shop.json");
+        var path = path();
         if (!Files.exists(path)) {
             Files.createDirectories(path.getParent());
             try (var defaults = Settings.class.getResourceAsStream("/gift-vault-shop-default.json")) {

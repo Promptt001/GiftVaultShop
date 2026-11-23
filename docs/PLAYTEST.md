@@ -19,6 +19,13 @@ Use a disposable Minecraft Java 26.2 Fabric world, not your existing stream save
 
 If something fails, note the command, expected and actual results, loader and mod versions, and attach the relevant lines from `logs/latest.log` after removing account or private information. A normal save/reopen does not verify abrupt shutdown or crash recovery.
 
+## In-game settings editor
+
+1. In a disposable private world, open `/giftgui`. Browse the five categories, use the page arrows, and edit **Portrait banners → Height**. Press Escape, choose **Keep editing**, and confirm your draft is still visible. Close again and discard; open `/giftgui` and confirm the old value is still there.
+2. Set Height to `101` and choose **Save & apply**. Expect a validation message and no saved change. Correct to `35`, save, then run `/giftsim follow Jamie` and check the banner in your capture preview without reopening the world.
+3. Change the torches price, save, then open `/giftshop` and check the new price. Add and remove a temporary gift rule, using **Save & apply** to commit each change. Reopen the world and check that the saved options persisted and no points changed just from editing settings.
+4. While the editor is open, edit the file separately and try saving an older draft. Expect a refusal. If you already test with a local-network world, check that the editor refuses to open there.
+
 ## Portrait alerts in your capture
 
 1. In a disposable private world with TikTools off, run `/giftsim follow Jamie`, `/giftsim share Jamie`, then `/giftsim like 25 Jamie`. Check the centre strip in your preview rather than just the full game window. Likes may appear after the earlier banners.
