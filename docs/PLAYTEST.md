@@ -19,6 +19,12 @@ Use a disposable Minecraft Java 26.2 Fabric world, not your existing stream save
 
 If something fails, note the command, expected and actual results, loader and mod versions, and attach the relevant lines from `logs/latest.log` after removing account or private information. A normal save/reopen does not verify abrupt shutdown or crash recovery.
 
+## Portrait alerts in your capture
+
+1. In a disposable private world with TikTools off, run `/giftsim follow Jamie`, `/giftsim share Jamie`, then `/giftsim like 25 Jamie`. Check the centre strip in your preview rather than just the full game window. Likes may appear after the earlier banners.
+2. Run `/giftsim gift rose portrait-1 3 Alex`. Expect a **Test · Gift** banner and `+15 points`. A gift can replace a follow or like banner, but not one for a gift already showing. Repeat the exact command: the gift should not credit or show again.
+3. If TikTok covers the banner, change `portraitAlerts.verticalPercent` from `15` to `35`, reopen the world, and run `/giftsim follow Jamie` again. Check that the banner moved down and still fits your centre crop. Try a long name, and opt comments or joins in if you want to check them. This change does not move the shop screen.
+
 ## TikTools on your stream
 
 Follow [read-only setup](LIVE-CONNECTION.md) first. With a disposable world, verify the status command, literal comments, each activity type, gift recipient and finalized count, and unchanged points. Briefly interrupt the network and resume it: expect a visible gap warning and resumed delivery for new events, not guaranteed backfill. In a separate rewards-mode trial, confirm that a mapped gift affects only your local player, a streak awards exactly its final count, and the saved wallet survives Save and Quit. If TikTools resends an already recorded transaction, expect no second award. If you cannot observe repeat delivery on demand, the local WebSocket build check covers a simulated repeat; do not record that as a live pass. Verify leaving the world and opening it to the Local Area Network both stop live input.

@@ -12,7 +12,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.*;
 
-record Settings(Map<String, Rule> gifts, List<Offer> offers, Set<String> chat, Alerts.Options alerts) {
+record Settings(Map<String, Rule> gifts, List<Offer> offers, Set<String> chat, Alerts.Options alerts, PortraitAlerts.Options portrait) {
     static final List<String> KINDS = List.of("comment", "follow", "like", "share", "join", "gift");
     record Rule(int points, Holder<MobEffect> effect, int seconds, int level, Alerts.Cue cue) {}
     record Offer(String key, ItemStack stack, int price) {}
@@ -55,7 +55,8 @@ record Settings(Map<String, Rule> gifts, List<Offer> offers, Set<String> chat, A
         var chat = new HashSet<String>();
         var flags = root.getAsJsonObject("chat");
         for (String kind : KINDS) if (flag(flags, kind, true)) chat.add(kind);
-        return new Settings(Map.copyOf(gifts), List.copyOf(offers), Set.copyOf(chat), Alerts.Options.parse(root.getAsJsonObject("alerts")));
+        return new Settings(Map.copyOf(gifts), List.copyOf(offers), Set.copyOf(chat), Alerts.Options.parse(root.getAsJsonObject("alerts")),
+            PortraitAlerts.Options.parse(root.getAsJsonObject("portraitAlerts")));
     }
 
     static boolean flag(JsonObject o, String key, boolean fallback) {

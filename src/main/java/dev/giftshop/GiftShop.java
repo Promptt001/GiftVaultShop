@@ -6,6 +6,8 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -35,6 +37,7 @@ public final class GiftShop implements ModInitializer {
 
     @Override public void onInitialize() {
         if (ShopMenu.TYPE == null) throw new IllegalStateException("Shop menu not registered");
+        PayloadTypeRegistry.clientboundPlay().register(AlertBannerPacket.TYPE, AlertBannerPacket.CODEC);
         CommandRegistrationCallback.EVENT.register((dispatcher, registry, environment) -> {
             dispatcher.register(literal("giftshop").requires(GiftShop::allowed).executes(c -> {
                 var p = c.getSource().getPlayerOrException();
@@ -62,8 +65,15 @@ public final class GiftShop implements ModInitializer {
                     IntegerArgumentType.getInteger(c, "count"), StringArgumentType.getString(c, "viewer"), false)))))));
             sim.then(literal("comment").then(argument("viewer", StringArgumentType.string()).then(argument("message", StringArgumentType.greedyString()).executes(c ->
                 activity(c.getSource().getPlayerOrException(), "comment", ViewerText.clean(StringArgumentType.getString(c, "viewer"), 48) + ": " + ViewerText.clean(StringArgumentType.getString(c, "message"), 220))))));
-            sim.then(literal("like").then(argument("count", IntegerArgumentType.integer(1, 1_000_000)).then(argument("viewer", StringArgumentType.greedyString()).executes(c ->
-                activity(c.getSource().getPlayerOrException(), "like", ViewerText.clean(StringArgumentType.getString(c, "viewer"), 48) + " sent " + IntegerArgumentType.getInteger(c, "count") + " likes")))));
+            sim.then(literal("like").then(argument("count", IntegerArgumentType.integer(1, 1_000_000))
+                .then(argument("viewer", StringArgumentType.greedyString()).executes(c -> {
+                    var p = c.getSource().getPlayerOrException();
+                    if (!ready(p)) return 0;
+                    int count = IntegerArgumentType.getInteger(c, "count");
+                    String viewer = ViewerText.clean(StringArgumentType.getString(c, "viewer"), 48);
+                    present(p, "like", viewer + " sent " + count + " likes", null, false, "", "", count);
+                    return 1;
+                }))));
             for (String kind : new String[]{"follow", "share", "join"}) {
                 String action = switch (kind) { case "follow" -> " followed"; case "share" -> " shared the LIVE"; default -> " joined the LIVE"; };
                 sim.then(literal(kind).then(argument("viewer", StringArgumentType.greedyString()).executes(c ->
@@ -134,7 +144,7 @@ public final class GiftShop implements ModInitializer {
         }
         for (var event : feed.drain()) {
             if (event.gift() == null) {
-                present(owner, event.kind(), event.text(), null, true);
+                present(owner, event.kind(), event.text(), null, true, event.text(), "", event.likes());
                 continue;
             }
             var g = event.gift();
@@ -176,6 +186,10 @@ public final class GiftShop implements ModInitializer {
         return 1;
     }
     private void present(ServerPlayer p, String kind, String text, Alerts.Cue override, boolean liveEvent) {
+        present(p, kind, text, override, liveEvent, text, "", 0);
+    }
+    private void present(ServerPlayer p, String kind, String text, Alerts.Cue override, boolean liveEvent,
+                         String bannerText, String detail, int likes) {
         if (settings.chat().contains(kind)) {
             var color = switch (kind) {
                 case "gift" -> net.minecraft.ChatFormatting.GOLD;
@@ -190,6 +204,9 @@ public final class GiftShop implements ModInitializer {
         if (cue != Alerts.Cue.OFF && (options.sounds() || options.particles())
             && (options.sounds() || cue != Alerts.Cue.PING)
             && alertCooldown.allow(p.level().getServer().getTickCount(), options.cooldownTicks())) cue.play(p, options);
+        var portrait = settings.portrait();
+        if (portrait.shows(kind) && allowed(p) && ServerPlayNetworking.canSend(p, AlertBannerPacket.TYPE))
+            ServerPlayNetworking.send(p, new AlertBannerPacket(kind, bannerText, detail, liveEvent, portrait.verticalPercent(), likes));
     }
     private int gift(ServerPlayer p, String key, String id, int count, String viewer, boolean liveEvent) {
         if (!ready(p)) return 0;
@@ -207,8 +224,10 @@ public final class GiftShop implements ModInitializer {
         wallet(p, after);
         boolean applied = rule.effect() != null && p.addEffect(new MobEffectInstance(rule.effect(), rule.seconds() * 20, rule.level() - 1));
         int delta = after.points() - before.points();
-        present(p, "gift", ViewerText.clean(viewer, 48) + " sent " + count + " × " + key + " — " + (delta > 0 ? "+" : "") + delta + " points"
-            + (applied ? " · effect applied" : "") + ". Thanks!", rule.cue(), liveEvent);
+        String sent = ViewerText.clean(viewer, 48) + " sent " + count + " × " + key;
+        String points = (delta > 0 ? "+" : "") + delta + " points";
+        present(p, "gift", sent + " — " + points + (applied ? " · effect applied" : "") + ". Thanks!",
+            rule.cue(), liveEvent, sent, points, 0);
         return 1;
     }
 }

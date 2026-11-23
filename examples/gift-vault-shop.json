@@ -70,5 +70,17 @@
       "share": "celebrate",
       "gift": "sparkle"
     }
+  },
+  "portraitAlerts": {
+    "enabled": true,
+    "verticalPercent": 15,
+    "events": {
+      "comment": false,
+      "follow": true,
+      "like": true,
+      "share": true,
+      "join": false,
+      "gift": true
+    }
   }
 }

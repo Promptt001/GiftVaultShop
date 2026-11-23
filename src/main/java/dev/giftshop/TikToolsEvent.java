@@ -8,7 +8,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 
-record TikToolsEvent(String kind, String text, Gift gift) {
+record TikToolsEvent(String kind, String text, Gift gift, int likes) {
+    private TikToolsEvent(String kind, String text, Gift gift) { this(kind, text, gift, 0); }
     static final String LIVE_PREFIX = "tiktools:";
 
     record Gift(String id, String recipient, String transaction, int count, boolean finalized, String viewer) {
@@ -40,7 +41,7 @@ record TikToolsEvent(String kind, String text, Gift gift) {
                 case "member" -> activity("join", viewer + " joined the LIVE");
                 case "like" -> {
                     int likes = count(data, "likeCount", 1_000_000);
-                    yield likes == 0 ? null : activity("like", viewer + " sent " + likes + " likes");
+                    yield likes == 0 ? null : new TikToolsEvent("like", viewer + " sent " + likes + " likes", null, likes);
                 }
                 case "gift" -> {
                     JsonElement end = data.get("repeatEnd");

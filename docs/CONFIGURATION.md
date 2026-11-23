@@ -46,3 +46,26 @@ Set individual `chat` switches to `false` to hide `comment`, `follow`, `like`, `
 In `alerts`, set `sounds` or `particles` to `false` independently. `events` overrides a cue by event type. The default shared cooldown of `20` game ticks (roughly one second at normal speed) can be set from `5` to `200`. Events within that interval still appear in chat and gifts still apply; only the cue is skipped. Cues are not queued. Successful purchases play a short villager confirmation, controlled by the same `sounds` switch but separate from the gift cooldown. A cancellation or refusal does not play it. Existing files without an `alerts` section use preset event cues; add `cue` to older gift entries if you want the per-gift overrides from the new default file.
 
 If the shop reports invalid configuration, check `logs/latest.log`. You can move the bad file aside and reopen the world to regenerate defaults without resetting your wallet.
+
+## Portrait alerts for TikTok
+
+The banner sits inside a centred, full-height 9:16 crop. It is drawn by Minecraft; you do not need a separate stream overlay. To move it clear of TikTok's controls, back up `config/gift-vault-shop.json`, then add or edit this **top-level** section and reopen the world. Leave the existing `shop`, `gifts` and `alerts` sections in place.
+
+```json
+"portraitAlerts": {
+  "enabled": true,
+  "verticalPercent": 15,
+  "events": {
+    "gift": true,
+    "follow": true,
+    "share": true,
+    "like": true,
+    "comment": false,
+    "join": false
+  }
+}
+```
+
+`verticalPercent` is a whole number from `0` (top) to `100` (bottom). The default is `15`. Increase it to move the banner down; try `25` or `35` if the top of your stream is busy. Keep the game interface visible. The banner is hidden while the game is paused, and a very small game view can leave too little room to draw it.
+
+If the section is missing, the defaults above apply without the mod rewriting your file. You can set individual event types or turn all banners off with `enabled: false`. These switches do not change chat, sounds, particles or rewards. Gift banners take priority over activity, and likes are grouped without displaying individual names. The display queue is capped and drops old banners during bursts; this has no effect on rewards. A rewarded gift shows the actual points change, while a read-only gift shows no points line. Simulated banners carry a **Test** label.
