@@ -1,5 +1,7 @@
 # Configuration
 
+This file covers local game rules. For the separate `gift-vault-tiktools.json` and how to map actual TikTools gift IDs to those rules, see [Live connection](LIVE-CONNECTION.md).
+
 Open a single-player world once to generate `config/gift-vault-shop.json` in your Fabric instance. Back up the file and save, edit the file, then leave and reopen the world. Settings apply to the whole instance; balances and processed gift identifiers are stored per world. See the [shipped defaults](../src/main/resources/gift-vault-shop-default.json) for a complete valid JavaScript Object Notation (JSON) example.
 
 ## Gifts and shop

@@ -32,6 +32,7 @@ public final class ShopChecks {
         check(gate.allow(0, 20), "new world clears cooldown");
         check(ViewerText.clean("A\n\u2028\u202E§B", 2).equals("AB"), "viewer text strips layout and formatting controls");
         System.out.println("PASS: bundle, replay, deductions, bounds, spending, codec, alert settings, cooldown and chat sanitation");
+        TikToolsChecks.run();
     }
 
     private static void check(boolean ok, String message) {

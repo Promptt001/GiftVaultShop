@@ -1,5 +1,7 @@
 # Static review — Gift Vault Shop 0.2.0
 
+This is the historical offline preview review. For the later TikTools connector and its current limits, see [Live connection](LIVE-CONNECTION.md).
+
 This review followed local commands through configuration, gift scoring, chat presentation, shop confirmation, inventory delivery, and wallet serialization. It did not start a new Minecraft session or send real events. The separate [playtest](PLAYTEST.md) covers the parts that require the game.
 
 | Priority | Finding | Disposition |

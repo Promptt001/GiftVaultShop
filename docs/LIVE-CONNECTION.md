@@ -1,18 +1,42 @@
-# Connecting a TikTok LIVE
+# Connect your TikTok LIVE with TikTools
 
-**This build does not connect to TikTok or Livecade.** There are no account settings, network listeners, or incoming provider callbacks in the mod. `[TikTok · Test]` messages are generated locally. Your streaming software sends video and audio; the event source is a separate connection.
+**TikTools is the only live-event provider in Gift Vault Shop.** Keep sending picture and sound from Open Broadcaster Software (OBS) through Restream to TikTok as before. Minecraft makes its own outbound encrypted WebSocket connection, a connection that stays open so events arrive as they happen. It needs no inbound port, relay server, TikTok password or Restream stream key.
 
-## Can Livecade supply the events?
+TikTools is a third-party service, not TikTok. Check its terms, TikTok's rules for your account and your obligations for handling viewer data. [TikTools Basic](https://tik.tools/pricing) is the intended plan for one broadcaster; the listed eight-hour limit is per connection. Confirm pricing and limits when you subscribe. Paying does not guarantee recovery of missed gifts.
 
-Not from an interface we could verify in its public documentation. The [Livecade action trigger guide](https://livecade.io/docs/action-triggers/) describes actions inside Livecade games; its [comparison page](https://livecade.io/livecade-vs-tikfinity/) distinguishes those games from integrations that control external games. An overlay or simulator does not establish that Livecade can deliver events to a custom Fabric mod. Private or plan-specific access is unknown.
+## First run: read-only
 
-Before picking a provider, ask whether it supports a documented external event feed that works when the broadcast starts through Restream. Ask which events it forwards: comments, follows, likes, shares, joins, and gifts may have different coverage. For gifts, confirm stable identifiers across retries, gift type, the final count for bundled gifts, and how the feed distinguishes partial updates from a final total. Also confirm how it verifies the broadcaster and whether there is a sandbox that requires no paid gifts.
+1. Copy [the example](../examples/gift-vault-tiktools.json) to `config/gift-vault-tiktools.json` in the Minecraft instance. Set `mode` to `read_only` and `username` to your own TikTok handle. Leave the recipient and mapping alone for this check. A missing file or `off` makes no connection.
+2. Set `TIKTOOLS_API_KEY` in the environment of the **Minecraft game process**. Do not put the key in JSON, source control, screenshots or commands typed into chat. On Debian with Bash, close any already-running launcher. From a private terminal, run the following, type the key at the prompt, then start your usual launcher **from that same shell**. Some launchers manage child environments separately; check that the game inherits the variable.
 
-## What a connector must do before it can change a wallet
+   ```bash
+   read -rsp 'TikTools key: ' TIKTOOLS_API_KEY; printf '\n'
+   export TIKTOOLS_API_KEY
+   # Start your usual Minecraft launcher from this shell.
+   ```
 
-1. Verify the event source and broadcaster; only accept events for the configured account and currently open local world. Do not use a video stream key as a credential for this mod.
-2. Queue work on the integrated Minecraft server thread and discard stale messages when changing worlds. Translate only known gift types to local rules; viewer text must never select a command, item, price, or player.
-3. Process finalized gift bundles once. Use separate identifiers for live and test events. Set a documented replay window and retention plan before replacing the current saved identifier set; do not silently forget IDs that can still be resent.
-4. Keep comments as plain text. Add an optional chat filter or summary for high-volume likes and joins before enabling those feeds on a busy LIVE. Keep gift handling separate from display limits.
+   The key is used in the encrypted provider connection as required by TikTools. Clear it from the shell with `unset TIKTOOLS_API_KEY` after launching; this does not remove it from already-started processes. Avoid enabling detailed network logging or sharing full logs without checking them.
+3. Open a disposable private single-player world, start your LIVE independently, and run `/giftlive status`. Expect `LIVE room connected` once TikTools reports the room. If the world is paused, resume play to let Minecraft process queued events. Dedicated and published worlds are not supported.
+4. Check that comments, follows, likes, shares, joins and finalized gifts appear as `[TikTok · LIVE]` when their chat flags are enabled. Likes are delivered in batches, not one line per click. Read-only uses the configured display, sound and particle settings, but never edits the wallet or applies a gift status effect. `/giftsim` remains separate and **does** edit the local wallet.
+5. With a controlled gift test, check `/giftlive status` for the last finalized gift's numeric gift ID, recipient ID, count and whether a transaction ID was present. Verify the recipient independently as your own numeric TikTok user ID, particularly if streaming with guests. Test a single gift and a streak; check your balance with `/giftsim balance` before and after. This command does not display the key or raw transaction ID.
 
-A connector and a real broadcast test are future work. Don't enter a TikTok password or stream key into a mod configuration or issue report.
+## Enable wallet rewards only after the live check
+
+In the same file, set `mode` to `rewards`, set `recipientUserId` to your verified numeric ID **in quotes**, and map each observed TikTools gift ID to an existing rule in `gift-vault-shop.json`. For example:
+
+```json
+{
+  "mode": "rewards",
+  "username": "your_tiktok_username",
+  "recipientUserId": "1234567890123456789",
+  "giftRules": {"5655": "rose"}
+}
+```
+
+Replace the example recipient; the [TikTools event example](https://tik.tools/websocket) shows `5655` for Rose, but verify what your feed sends. Reopen the world after edits. Gift names and viewer text cannot pick commands, recipients, points or items. The mod only processes a gift if it has `repeatEnd: true`, a final integer count from 1 to 999, the configured recipient, a mapped gift ID and a usable `transactionId`. A gift missing any of these never changes points or applies a gift status effect. If your feed does not reliably provide those fields, stay in `read_only`. The mod does not substitute a timestamp, gift name, or message ID for a transaction ID.
+
+Each transaction is recorded with the wallet and ignored if it is sent again under the same ID. Points per gift unit, deductions and effects come from your local rule. Points never go below zero; no real-money debit occurs. Use the [playtest checklist](PLAYTEST.md) before switching on rewards in a valued world.
+
+## Disconnects and busy streams
+
+The mod reconnects with delays, stops retrying on explicit authentication rejection, and closes the connection when leaving the world or publishing it to the local network. `/giftlive status` reports connection state, possible gaps and dropped activity messages. A disconnect can lose events even when the reconnect works: TikTools does not document full replay of this event feed. A gift backlog overflow pauses rewards until you reopen the world. Activity may be discarded when its separate queue fills. Keep the game unpaused while streaming and check the status after an interruption. This release has not been verified on your actual broadcast or with your subscription.
