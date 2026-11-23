@@ -1,0 +1,74 @@
+{
+  "gifts": {
+    "rose": {
+      "points": 5
+    },
+    "heart": {
+      "points": 10,
+      "effect": "minecraft:speed",
+      "seconds": 15,
+      "level": 1,
+      "cue": "hearts"
+    },
+    "spark": {
+      "points": -3,
+      "effect": "minecraft:glowing",
+      "seconds": 10,
+      "level": 1,
+      "cue": "drain"
+    }
+  },
+  "shop": {
+    "torches": {
+      "item": "minecraft:torch",
+      "quantity": 16,
+      "price": 5
+    },
+    "steak": {
+      "item": "minecraft:cooked_beef",
+      "quantity": 4,
+      "price": 10
+    },
+    "oak_logs": {
+      "item": "minecraft:oak_log",
+      "quantity": 16,
+      "price": 15
+    },
+    "iron": {
+      "item": "minecraft:iron_ingot",
+      "quantity": 4,
+      "price": 25
+    },
+    "shield": {
+      "item": "minecraft:shield",
+      "quantity": 1,
+      "price": 30
+    },
+    "golden_apple": {
+      "item": "minecraft:golden_apple",
+      "quantity": 1,
+      "price": 75
+    }
+  },
+  "chat": {
+    "comment": true,
+    "follow": true,
+    "like": true,
+    "share": true,
+    "join": true,
+    "gift": true
+  },
+  "alerts": {
+    "sounds": true,
+    "particles": true,
+    "cooldownTicks": 20,
+    "events": {
+      "comment": "off",
+      "join": "off",
+      "like": "off",
+      "follow": "hearts",
+      "share": "celebrate",
+      "gift": "sparkle"
+    }
+  }
+}

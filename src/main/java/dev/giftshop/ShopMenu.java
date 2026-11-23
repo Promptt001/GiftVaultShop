@@ -1,55 +1,83 @@
 package dev.giftshop;
 
-import net.minecraft.ChatFormatting;
-import net.minecraft.core.component.DataComponents;
-import net.minecraft.network.chat.Component;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.inventory.ChestMenu;
-import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.world.flag.FeatureFlags;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.DataSlot;
 import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.item.component.ItemLore;
 import java.util.List;
 
-final class ShopMenu extends ChestMenu {
-    private static final int PER_PAGE = 18;
+final class ShopMenu extends AbstractContainerMenu {
+    static final int PER_PAGE = 6;
+    static final int PREVIOUS = 6, NEXT = 7, BACK = 8, BUY = 9;
+    static final int W = 294, H = 206, CARD_W = 88, CARD_H = 66;
+    static int cardX(int i) { return 11 + i % 3 * 92; }
+    static int cardY(int i) { return 37 + i / 3 * 71; }
+
+    static final MenuType<ShopMenu> TYPE = Registry.register(BuiltInRegistries.MENU,
+        Identifier.parse("fabric_gift_shop:shop"), new MenuType<>(ShopMenu::new, FeatureFlags.DEFAULT_FLAGS));
+
     private final ServerPlayer owner;
     private final List<Settings.Offer> offers;
-    private Settings.Offer review;
+    private final boolean sound;
+    private final SimpleContainer display = new SimpleContainer(PER_PAGE);
+    // Container data is sent in signed shorts, so split each full-range points value.
+    private final int[] data = new int[PER_PAGE * 2 + 5];
+    private int review = -1;
     private int page;
-    private int displayedPoints = -1;
 
-    ShopMenu(int id, ServerPlayer owner, List<Settings.Offer> offers) {
-        super(MenuType.GENERIC_9x3, id, owner.getInventory(), new SimpleContainer(27), 3);
+    private ShopMenu(int id, Inventory ignored) { this(id, null, List.of(), false); }
+
+    ShopMenu(int id, ServerPlayer owner, List<Settings.Offer> offers, boolean sound) {
+        super(TYPE, id);
         this.owner = owner;
         this.offers = offers;
-        render();
+        this.sound = sound;
+        for (int i = 0; i < PER_PAGE; i++) {
+            addSlot(new Slot(display, i, cardX(i) + 6, cardY(i) + 7));
+        }
+        for (int i = 0; i < data.length; i++) addDataSlot(DataSlot.shared(data, i));
+        if (owner != null) refresh();
+    }
+
+    int balance() { return readPoints(PER_PAGE); }
+    int price(int i) { return readPoints(i); }
+    int selected() { return data[PER_PAGE * 2 + 2] - 1; }
+    boolean hasPrevious() { return data[PER_PAGE * 2 + 3] != 0; }
+    boolean hasNext() { return data[PER_PAGE * 2 + 4] != 0; }
+    private int readPoints(int i) { return ((data[2*i + 1] & 0xffff) << 16) | (data[2*i] & 0xffff); }
+    private void writePoints(int i, int value) {
+        data[2*i] = (short) value;
+        data[2*i + 1] = (short) (value >>> 16);
     }
 
     @Override public boolean stillValid(Player p) { return p == owner && GiftShop.allowed(owner); }
     @Override public ItemStack quickMoveStack(Player p, int slot) { return ItemStack.EMPTY; }
-    @Override public void clicked(int slot, int button, ContainerInput input, Player player) {
-        // All slots are read-only in this screen, including the displayed player inventory.
-        if (!stillValid(player) || input != ContainerInput.PICKUP || button != 0 || slot < 0 || slot >= 27) return;
-        if (review != null) {
-            if (slot == 18) review = null;
-            else if (slot == 22) {
-                var selected = review;
-                review = null; // consume confirmation before validating or delivering
-                purchase(selected);
-            } else return;
-        } else if (slot == 18 && page > 0) page--;
-        else if (slot == 26 && (page + 1) * PER_PAGE < offers.size()) page++;
-        else if (slot < PER_PAGE && page * PER_PAGE + slot < offers.size()) {
-            var selected = offers.get(page * PER_PAGE + slot);
-            if (GiftShop.wallet(owner).points() >= selected.price()) review = selected;
-            else GiftShop.say(owner, "Not enough points.");
-        } else return;
-        render();
+    @Override public void clicked(int slot, int button, net.minecraft.world.inventory.ContainerInput input, Player player) { }
+    @Override public boolean clickMenuButton(Player player, int button) {
+        if (!stillValid(player)) return false;
+        if (review >= 0) {
+            if (button != BACK && button != BUY) return false;
+            var selected = offers.get(page * PER_PAGE + review);
+            review = -1; // Consume confirmation even if the purchase fails.
+            if (button == BUY) purchase(selected);
+        } else if (button == PREVIOUS && page > 0) page--;
+        else if (button == NEXT && (page + 1) * PER_PAGE < offers.size()) page++;
+        else if (button >= 0 && button < PER_PAGE && page * PER_PAGE + button < offers.size()) {
+            if (GiftShop.wallet(owner).points() < offers.get(page * PER_PAGE + button).price()) return false;
+            review = button;
+        } else return false;
+        refresh();
+        broadcastChanges();
+        return true;
     }
 
     private void purchase(Settings.Offer offer) {
@@ -65,6 +93,7 @@ final class ShopMenu extends ChestMenu {
         }
         inventory.setChanged();
         GiftShop.wallet(owner, wallet.spend(offer.price()));
+        Alerts.purchase(owner, sound);
         GiftShop.say(owner, "Bought " + offer.stack().getCount() + " × " + offer.stack().getHoverName().getString() + " for " + offer.price() + " points.");
     }
 
@@ -85,37 +114,20 @@ final class ShopMenu extends ChestMenu {
     }
 
     @Override public void broadcastChanges() {
-        if (GiftShop.wallet(owner).points() != displayedPoints) render();
+        if (owner != null) writePoints(PER_PAGE, GiftShop.wallet(owner).points());
         super.broadcastChanges();
     }
 
-    private void render() {
-        var grid = getContainer();
-        grid.clearContent();
-        displayedPoints = GiftShop.wallet(owner).points();
-        if (review != null) {
-            grid.setItem(4, preview(review, "Balance after purchase: " + Math.max(0, displayedPoints - review.price())));
-            grid.setItem(18, icon(new ItemStack(Items.BARRIER), "Cancel", "No points spent"));
-            grid.setItem(22, icon(new ItemStack(Items.EMERALD), "Buy for " + review.price() + " points", "Click to confirm"));
-        } else {
-            for (int i = 0; i < PER_PAGE && page * PER_PAGE + i < offers.size(); i++) {
-                var offer = offers.get(page * PER_PAGE + i);
-                grid.setItem(i, preview(offer, displayedPoints < offer.price() ? "Need " + (offer.price() - displayedPoints) + " more points" : "Click to review"));
-            }
-            if (page > 0) grid.setItem(18, icon(new ItemStack(Items.ARROW), "Previous page", "Click to go back"));
-            if ((page + 1) * PER_PAGE < offers.size()) grid.setItem(26, icon(new ItemStack(Items.ARROW), "Next page", "Click to continue"));
+    private void refresh() {
+        writePoints(PER_PAGE, GiftShop.wallet(owner).points());
+        data[PER_PAGE * 2 + 2] = review + 1;
+        data[PER_PAGE * 2 + 3] = page > 0 ? 1 : 0;
+        data[PER_PAGE * 2 + 4] = (page + 1) * PER_PAGE < offers.size() ? 1 : 0;
+        for (int i = 0; i < PER_PAGE; i++) {
+            int index = page * PER_PAGE + i;
+            var offer = index < offers.size() ? offers.get(index) : null;
+            display.setItem(i, offer == null ? ItemStack.EMPTY : offer.stack().copy());
+            writePoints(i, offer == null ? 0 : offer.price());
         }
-        grid.setItem(23, icon(new ItemStack(Items.SUNFLOWER), "Balance: " + displayedPoints + " points", "Points are saved with this world"));
-    }
-
-    private static ItemStack preview(Settings.Offer offer, String cue) {
-        var reward = offer.stack();
-        return icon(reward.copy(), reward.getCount() + " × " + reward.getHoverName().getString(), "Price: " + offer.price() + " points", cue);
-    }
-    private static ItemStack icon(ItemStack stack, String name, String... lines) {
-        stack.set(DataComponents.CUSTOM_NAME, Component.literal(name).withStyle(ChatFormatting.AQUA));
-        stack.set(DataComponents.LORE, new ItemLore(java.util.Arrays.stream(lines)
-            .<Component>map(l -> Component.literal(l).withStyle(ChatFormatting.YELLOW)).toList()));
-        return stack;
     }
 }

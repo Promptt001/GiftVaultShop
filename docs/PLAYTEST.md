@@ -1,14 +1,15 @@
 # Single-player playtest
 
-Use a disposable Minecraft Java 26.2 Fabric world, not your existing stream save. These are manual checks; the build does not run them.
+Use a disposable Minecraft Java 26.2 Fabric world, not your existing stream save. Use a fresh Fabric instance for the default-catalog check, or adopt the new `shop` section as described in [Configuration](CONFIGURATION.md). Opening a different world in the same instance does not replace its configuration. These are manual checks; the build does not run them.
 
 | Try this | Expect this |
 | --- | --- |
 | `/giftsim gift rose playtest-1 3 Alex`, then repeat it | One credit of 15 points, one gift cue, duplicate rejected |
 | `/giftsim gift heart playtest-2 1 Alex`, then `/giftsim gift spark playtest-3 1 Alex` | Speed and +10 points, then Glowing and −3 points; see the actual effects in Minecraft |
-| `/giftsim comment Alex Hello!`, `/giftsim follow Jamie`, `/giftsim like 25 Jamie`, `/giftsim share Jamie`, `/giftsim join Jamie` | All five messages in chat; comment and join are quiet. Leave a second between commands when checking each cue. |
-| Open `/giftshop`, choose torches, then click the barrier or press Esc | Nothing delivered or charged |
-| Review torches and double-click Buy | Eight torches, one debit of five points, and the shop returns to browsing |
+| `/giftsim comment Alex Hello!`, `/giftsim follow Jamie`, `/giftsim like 25 Jamie`, `/giftsim share Jamie`, `/giftsim join Jamie` | All five messages in chat; comment, like and join are quiet. Leave a second between commands when checking each cue. |
+| Open `/giftshop`; inspect all six offers and the balance | Item names, quantities and prices visible without hovering; offers say Ready or show the shortfall |
+| Open `/giftshop`, choose torches, then click Cancel or press Esc | Nothing delivered or charged |
+| Review torches and double-click Buy | 16 torches, one debit of five points, and the shop returns to browsing; the villager confirmation sounds different from the gift chime. With a free hotbar slot, check whether the torches appear before or only after closing the shop |
 | Fill all 36 main inventory slots with items other than torches and try to buy more | Clear refusal; points and inventory unchanged |
 | Try an offer that costs more than the current balance | No purchase |
 | Save and quit, reopen, then check balance and repeat `playtest-1` | Points and items persist, and the old gift is still rejected |

@@ -32,11 +32,11 @@ final class Alerts {
             if (options.sounds()) {
                 Holder<SoundEvent> sound = switch (this) {
                     case CELEBRATE -> Holder.direct(SoundEvents.PLAYER_LEVELUP);
-                    case SPARKLE, HEARTS -> SoundEvents.NOTE_BLOCK_PLING;
+                    case SPARKLE -> Holder.direct(SoundEvents.AMETHYST_BLOCK_CHIME);
+                    case HEARTS -> SoundEvents.NOTE_BLOCK_PLING;
                     default -> Holder.direct(SoundEvents.EXPERIENCE_ORB_PICKUP);
                 };
-                p.connection.send(new ClientboundSoundPacket(sound, SoundSource.PLAYERS,
-                    p.getX(), p.getY(), p.getZ(), 0.4f, this == DRAIN ? 0.55f : 1.15f, p.getRandom().nextLong()));
+                playSound(p, sound, 0.4f, this == DRAIN ? 0.55f : 1.15f);
             }
             SimpleParticleType particle = switch (this) {
                 case HEARTS -> ParticleTypes.HEART;
@@ -53,9 +53,18 @@ final class Alerts {
         }
     }
 
+    static void purchase(ServerPlayer player, boolean sounds) {
+        if (sounds) playSound(player, Holder.direct(SoundEvents.VILLAGER_YES), 0.45f, 1.0f);
+    }
+
+    private static void playSound(ServerPlayer player, Holder<SoundEvent> sound, float volume, float pitch) {
+        player.connection.send(new ClientboundSoundPacket(sound, SoundSource.PLAYERS,
+            player.getX(), player.getY(), player.getZ(), volume, pitch, player.getRandom().nextLong()));
+    }
+
     record Options(boolean sounds, boolean particles, int cooldownTicks, Map<String, Cue> events) {
         static Options parse(JsonObject input) {
-            var defaults = Map.of("comment", Cue.OFF, "join", Cue.OFF, "like", Cue.PING,
+            var defaults = Map.of("comment", Cue.OFF, "join", Cue.OFF, "like", Cue.OFF,
                 "follow", Cue.HEARTS, "share", Cue.CELEBRATE, "gift", Cue.SPARKLE);
             if (input == null) return new Options(true, true, 20, defaults);
             var events = new java.util.HashMap<>(defaults);

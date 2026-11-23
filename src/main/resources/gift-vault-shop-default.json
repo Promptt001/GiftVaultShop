@@ -21,18 +21,33 @@
   "shop": {
     "torches": {
       "item": "minecraft:torch",
-      "quantity": 8,
+      "quantity": 16,
       "price": 5
     },
-    "bread": {
-      "item": "minecraft:bread",
+    "steak": {
+      "item": "minecraft:cooked_beef",
       "quantity": 4,
       "price": 10
+    },
+    "oak_logs": {
+      "item": "minecraft:oak_log",
+      "quantity": 16,
+      "price": 15
     },
     "iron": {
       "item": "minecraft:iron_ingot",
       "quantity": 4,
       "price": 25
+    },
+    "shield": {
+      "item": "minecraft:shield",
+      "quantity": 1,
+      "price": 30
+    },
+    "golden_apple": {
+      "item": "minecraft:golden_apple",
+      "quantity": 1,
+      "price": 75
     }
   },
   "chat": {
@@ -50,7 +65,7 @@
     "events": {
       "comment": "off",
       "join": "off",
-      "like": "ping",
+      "like": "off",
       "follow": "hearts",
       "share": "celebrate",
       "gift": "sparkle"

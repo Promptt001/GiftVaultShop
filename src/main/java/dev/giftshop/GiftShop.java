@@ -34,11 +34,12 @@ public final class GiftShop implements ModInitializer {
     private final Alerts.Cooldown alertCooldown = new Alerts.Cooldown();
 
     @Override public void onInitialize() {
+        if (ShopMenu.TYPE == null) throw new IllegalStateException("Shop menu not registered");
         CommandRegistrationCallback.EVENT.register((dispatcher, registry, environment) -> {
             dispatcher.register(literal("giftshop").requires(GiftShop::allowed).executes(c -> {
                 var p = c.getSource().getPlayerOrException();
                 if (!ready(p)) return 0;
-                p.openMenu(new SimpleMenuProvider((id, inventory, player) -> new ShopMenu(id, p, settings.offers()),
+                p.openMenu(new SimpleMenuProvider((id, inventory, player) -> new ShopMenu(id, p, settings.offers(), settings.alerts().sounds()),
                     Component.literal("Gift Vault Shop")));
                 return 1;
             }));

@@ -5,6 +5,7 @@
   "name": "Gift Vault Shop",
   "description": "Single-player points shop with sound and particle cues for TikTok LIVE via TikTools, with offline simulation.",
   "environment": "client",
-  "entrypoints": {"main": ["dev.giftshop.GiftShop"]},
+  "accessWidener": "gift-vault-shop.accesswidener",
+  "entrypoints": {"main": ["dev.giftshop.GiftShop"], "client": ["dev.giftshop.GiftShopClient"]},
   "depends": {"fabricloader": ">=0.19.5", "minecraft": "26.2", "java": ">=25", "fabric-api": ">=0.160.0+26.2"}
 }

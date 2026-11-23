@@ -32,6 +32,20 @@ public final class ShopChecks {
         check(gate.allow(0, 20), "new world clears cooldown");
         check(ViewerText.clean("A\n\u2028\u202E§B", 2).equals("AB"), "viewer text strips layout and formatting controls");
         System.out.println("PASS: bundle, replay, deductions, bounds, spending, codec, alert settings, cooldown and chat sanitation");
+        try (var reader = new java.io.InputStreamReader(java.util.Objects.requireNonNull(
+            ShopChecks.class.getResourceAsStream("/gift-vault-shop-default.json")), java.nio.charset.StandardCharsets.UTF_8)) {
+            var root = com.google.gson.JsonParser.parseReader(reader).getAsJsonObject();
+            var actual = root.getAsJsonObject("shop").entrySet().stream().map(e -> {
+                var offer = e.getValue().getAsJsonObject();
+                return offer.get("item").getAsString() + "/" + offer.get("quantity").getAsInt() + "/" + offer.get("price").getAsInt();
+            }).toList();
+            check(actual.equals(java.util.List.of("minecraft:torch/16/5", "minecraft:cooked_beef/4/10",
+                "minecraft:oak_log/16/15", "minecraft:iron_ingot/4/25", "minecraft:shield/1/30",
+                "minecraft:golden_apple/1/75")), "six starter offers and exact costs in display order");
+            check(Alerts.Options.parse(root.getAsJsonObject("alerts")).events().get("like") == Alerts.Cue.OFF,
+                "new default likes must be quiet");
+        }
+        System.out.println("PASS: six starter offers, prices, display order and quiet like default");
         TikToolsChecks.run();
     }
 
