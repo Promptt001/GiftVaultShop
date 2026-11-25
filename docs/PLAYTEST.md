@@ -6,7 +6,7 @@ Use a disposable Minecraft Java 26.2 Fabric world, not your existing stream save
 | --- | --- |
 | `/giftsim gift rose playtest-1 3 Alex`, then repeat it | One credit of 15 points, one gift cue, duplicate rejected |
 | `/giftsim gift heart playtest-2 1 Alex`, then `/giftsim gift spark playtest-3 1 Alex` | Speed and +10 points, then Glowing and −3 points; see the actual effects in Minecraft |
-| `/giftsim comment Alex Hello!`, `/giftsim follow Jamie`, `/giftsim like 25 Jamie`, `/giftsim share Jamie`, `/giftsim join Jamie` | All five messages in chat; comment, like and join are quiet. Leave a second between commands when checking each cue. |
+| `/giftsim comment Alex Hello!`, `/giftsim follow Jamie`, `/giftsim like 25 Jamie`, `/giftsim share Jamie`, `/giftsim join Jamie` | All five messages in chat; comment has no sound; with fresh settings, likes and joins have soft pings. Leave three seconds between commands when checking each cue. |
 | Open `/giftshop`; inspect all six offers and the balance | Item names, quantities and prices visible without hovering; offers say Ready or show the shortfall |
 | Open `/giftshop`, choose torches, then click Cancel or press Esc | Nothing delivered or charged |
 | Review torches and double-click Buy | 16 torches, one debit of five points, and the shop returns to browsing; the villager confirmation sounds different from the gift chime. With a free hotbar slot, check whether the torches appear before or only after closing the shop |
@@ -30,8 +30,16 @@ If something fails, note the command, expected and actual results, loader and mo
 
 1. In a disposable private world with TikTools off, run `/giftsim follow Jamie`, `/giftsim share Jamie`, then `/giftsim like 25 Jamie`. Check the centre strip in your preview rather than just the full game window. Likes may appear after the earlier banners.
 2. Run `/giftsim gift rose portrait-1 3 Alex`. Expect a **Test · Gift** banner and `+15 points`. A gift can replace a follow or like banner, but not one for a gift already showing. Repeat the exact command: the gift should not credit or show again.
-3. If TikTok covers the banner, change `portraitAlerts.verticalPercent` from `15` to `35`, reopen the world, and run `/giftsim follow Jamie` again. Check that the banner moved down and still fits your centre crop. Try a long name, and opt comments or joins in if you want to check them. This change does not move the shop screen.
+3. If TikTok covers the banner, change `portraitAlerts.verticalPercent` from `15` to `35`, reopen the world, and run `/giftsim follow Jamie` again. Check that the banner moved down and still fits your centre crop. Try a long name and enable comments or joins in the editor if those banners are disabled in your settings. This change does not move the shop screen.
 
 ## TikTools on your stream
 
 Follow [read-only setup](LIVE-CONNECTION.md) first. With a disposable world, verify the status command, literal comments, each activity type, gift recipient and finalized count, and unchanged points. Briefly interrupt the network and resume it: expect a visible gap warning and resumed delivery for new events, not guaranteed backfill. In a separate rewards-mode trial, confirm that a mapped gift affects only your local player, a streak awards exactly its final count, and the saved wallet survives Save and Quit. If TikTools resends an already recorded transaction, expect no second award. If you cannot observe repeat delivery on demand, the local WebSocket build check covers a simulated repeat; do not record that as a live pass. Verify leaving the world and opening it to the Local Area Network both stop live input.
+
+
+### 0.7.0 stream checks
+
+1. Upgrade an instance that explicitly uses `read_only`. Start it normally, run `/giftlive status`, and check that it still says `READ_ONLY`. During a broadcast, check that the **LIVE Likes** counter appears in the stream preview, and that likes and gifts do not change `/giftsim balance`.
+2. In a disposable world using rewards, check the balance after the first likes batch, then send more likes from a viewer device. The counter shows the whole room total; the balance increases only for newly observed likes after the baseline. Save and reopen the world; confirm the balance stays and an old total cannot claim points again.
+3. Check that a viewer join shows `Screen Name / @username` when both are supplied. Use `/giftgui` to enable the Like and Join pings and the Join banner if your existing settings disable them. In the portrait preview, check that animations stay inside the crop and a gift still sounds after a follow.
+4. If a gift arrives naturally, run `/giftlive status` to see its result. Confirm a mapped Rose with a 5-point rule earns 50 points per unit in rewards mode. If a gift such as Hand Heart is unmapped, confirm the status shows its numeric gift ID and the reason rather than guessing a mapping. No purchase is needed to check the rest of this list.

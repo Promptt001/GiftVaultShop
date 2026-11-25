@@ -42,6 +42,7 @@ public final class GiftShopClient implements ClientModInitializer {
             })));
         var portrait = new PortraitAlertRenderer();
         ClientPlayNetworking.registerGlobalReceiver(AlertBannerPacket.TYPE, (alert, context) -> context.client().execute(() -> portrait.receive(alert)));
+        ClientPlayNetworking.registerGlobalReceiver(LikeScorePacket.TYPE, (score, context) -> context.client().execute(() -> portrait.score(score.total())));
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> client.execute(portrait::clear));
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, Identifier.parse("fabric_gift_shop:portrait_alerts"),
             (graphics, ticks) -> portrait.draw(graphics));

@@ -37,7 +37,7 @@ A gift rule can award points, deduct points, apply a Minecraft status effect, or
 | 1 shield | 30 points |
 | 1 golden apple | 75 points |
 
-A fresh configuration gets these offers. Existing files are never rewritten. To keep your gift and alert settings but adopt the new offers, replace only the `shop` section using `examples/gift-vault-shop.json` from the download, then reopen the world. This does not reset points. Set your existing `alerts.events.like` to `off` if you also want the new quiet-like default.
+A fresh configuration gets these offers. Existing files are never rewritten. To keep your gift and alert settings but adopt the new offers, replace only the `shop` section using `examples/gift-vault-shop.json` from the download, then reopen the world. This does not reset points.
 
 ## Chat, sounds and particles
 
@@ -52,7 +52,7 @@ Set individual `chat` switches to `false` to hide `comment`, `follow`, `like`, `
 | `celebrate` | A level-up sound and green particles |
 | `drain` | A low note and smoke |
 
-In `alerts`, set `sounds` or `particles` to `false` independently. `events` overrides a cue by event type. The default shared cooldown of `20` game ticks (roughly one second at normal speed) can be set from `5` to `200`. Events within that interval still appear in chat and gifts still apply; only the cue is skipped. Cues are not queued. Successful purchases play a short villager confirmation, controlled by the same `sounds` switch but separate from the gift cooldown. A cancellation or refusal does not play it. Existing files without an `alerts` section use preset event cues; add `cue` to older gift entries if you want the per-gift overrides from the new default file.
+In `alerts`, set `sounds` or `particles` to `false` independently. `events` overrides a cue by event type. The default cue cooldown of `20` game ticks (roughly one second at normal speed) can be set from `5` to `200`. Gifts have their own timer, so a join or follow cannot suppress the next gift sound. Likes also have their own timer and play at most once every three seconds at normal game speed. Events within that interval still appear in chat and gifts still apply; only the cue is skipped. Cues are not queued. Successful purchases play a short villager confirmation, controlled by the same `sounds` switch but separate from the gift cooldown. A cancellation or refusal does not play it. Existing files without an `alerts` section use preset event cues; add `cue` to older gift entries if you want the per-gift overrides from the new default file.
 
 If the shop reports invalid configuration, check `logs/latest.log`. You can move the bad file aside and reopen the world to regenerate defaults without resetting your wallet.
 
@@ -70,11 +70,11 @@ The banner sits inside a centred, full-height 9:16 crop. It is drawn by Minecraf
     "share": true,
     "like": true,
     "comment": false,
-    "join": false
+    "join": true
   }
 }
 ```
 
 `verticalPercent` is a whole number from `0` (top) to `100` (bottom). The default is `15`. Increase it to move the banner down; try `25` or `35` if the top of your stream is busy. Keep the game interface visible. The banner is hidden while the game is paused, and a very small game view can leave too little room to draw it.
 
-If the section is missing, the defaults above apply without the mod rewriting your file. You can set individual event types or turn all banners off with `enabled: false`. These switches do not change chat, sounds, particles or rewards. Gift banners take priority over activity, and likes are grouped without displaying individual names. The display queue is capped and drops old banners during bursts; this has no effect on rewards. A rewarded gift shows the actual points change, while a read-only gift shows no points line. Simulated banners carry a **Test** label.
+If the section is missing, the defaults above apply without the mod rewriting your file. You can set individual event types or turn the counter and all banners off with `enabled: false`. The counter starts at the top of the crop when a live room total arrives, and the banner leaves space below it. These switches do not change chat, sounds, particles or rewards. Gift banners take priority over activity, and likes are grouped without displaying individual names. The display queue is capped and drops old banners during bursts; this has no effect on rewards. A rewarded gift shows the actual points change, while a read-only gift shows no points line. Simulated banners carry a **Test** label.

@@ -42,10 +42,19 @@ public final class ShopChecks {
             check(actual.equals(java.util.List.of("minecraft:torch/16/5", "minecraft:cooked_beef/4/10",
                 "minecraft:oak_log/16/15", "minecraft:iron_ingot/4/25", "minecraft:shield/1/30",
                 "minecraft:golden_apple/1/75")), "six starter offers and exact costs in display order");
-            check(Alerts.Options.parse(root.getAsJsonObject("alerts")).events().get("like") == Alerts.Cue.OFF,
-                "new default likes must be quiet");
+            check(Alerts.Options.parse(root.getAsJsonObject("alerts")).events().get("like") == Alerts.Cue.PING,
+                "fresh setups use the quiet, throttled like ping");
         }
-        System.out.println("PASS: six starter offers, prices, display order and quiet like default");
+        System.out.println("PASS: six starter offers, prices, display order and throttled like cue");
+        for (int width : new int[]{101, 320, 853}) for (int height : new int[]{120, 240, 479}) {
+            int crop = Math.min(width, (int) (height * 9L / 16));
+            for (int percent : new int[]{0, 15, 100}) {
+                var box = PortraitAlerts.Box.layout(width, height, percent, true);
+                check(box != null && box.y() > 23 && box.y() + box.height() <= height - 6
+                    && box.x() >= (width - crop) / 2 && box.x() + box.width() <= (width + crop) / 2,
+                    "banner clears the scoreboard and stays in the portrait crop");
+            }
+        }
         TikToolsChecks.run();
         ConfigChecks.run();
     }

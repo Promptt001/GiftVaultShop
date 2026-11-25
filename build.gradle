@@ -1,5 +1,5 @@
 plugins { id 'net.fabricmc.fabric-loom' version '1.17.20' }
-version = '0.6.0'
+version = '0.7.0'
 group = 'dev.giftshop'
 loom { accessWidenerPath = file("src/main/resources/gift-vault-shop.accesswidener") }
 repositories { mavenCentral() }

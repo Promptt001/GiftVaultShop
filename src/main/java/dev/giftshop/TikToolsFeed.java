@@ -22,6 +22,8 @@ final class TikToolsFeed implements AutoCloseable {
     private Attempt attempt;
     private boolean stopped, rejected, gap, giftOverflow;
     private long nextTry, retries, droppedActivity;
+    private String room = "";
+    private long roomLikes = -1;
     private String state = "waiting to connect";
 
     TikToolsFeed(URI endpoint) { this(endpoint, () -> System.nanoTime() / 1_000_000); }
@@ -68,6 +70,8 @@ final class TikToolsFeed implements AutoCloseable {
             + (giftOverflow ? " · gift queue overflow: rewards paused until world reopen" : "")
             + (droppedActivity > 0 ? " · activity messages dropped: " + droppedActivity : "");
     }
+    record LikesSnapshot(String room, long total) {}
+    synchronized LikesSnapshot likesSnapshot() { return new LikesSnapshot(room, roomLikes); }
     synchronized boolean rewardsPaused() { return giftOverflow; }
     synchronized List<TikToolsEvent> drain() {
         var events = new ArrayList<TikToolsEvent>();
@@ -117,11 +121,16 @@ final class TikToolsFeed implements AutoCloseable {
                     var event = TikToolsEvent.parse(frame.toString());
                     frame.setLength(0);
                     if (event != null && event.kind().equals("roomInfo")) {
+                        if (!room.equals(event.room())) { room = event.room(); roomLikes = -1; }
                         roomReady = true;
                         retries = 0;
                         state = "LIVE room connected";
                     } else if (event != null && roomReady) {
                         if (event.gift() == null) {
+                            if (event.kind().equals("like")) {
+                                roomLikes = Math.max(roomLikes, event.totalLikes());
+                                event = event.inRoom(room);
+                            }
                             if (activity.size() == MAX_ACTIVITY) { activity.removeFirst(); droppedActivity++; }
                             activity.addLast(event);
                         } else if (event.gift().finalized()) {

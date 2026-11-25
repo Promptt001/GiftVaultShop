@@ -27,7 +27,7 @@ final class Alerts {
             };
         }
 
-        void play(ServerPlayer p, Options options) {
+        void play(ServerPlayer p, Options options, String kind) {
             if (this == OFF) return;
             if (options.sounds()) {
                 Holder<SoundEvent> sound = switch (this) {
@@ -36,7 +36,13 @@ final class Alerts {
                     case HEARTS -> SoundEvents.NOTE_BLOCK_PLING;
                     default -> Holder.direct(SoundEvents.EXPERIENCE_ORB_PICKUP);
                 };
-                playSound(p, sound, 0.4f, this == DRAIN ? 0.55f : 1.15f);
+                if (kind.equals("like")) playSound(p, sound, 0.16f, 1.45f);
+                else if (kind.equals("join")) playSound(p, sound, 0.22f, 1.30f);
+                else {
+                    playSound(p, sound, 0.4f, this == DRAIN ? 0.55f : 1.15f);
+                    if (kind.equals("gift") && this != DRAIN)
+                        playSound(p, SoundEvents.NOTE_BLOCK_PLING, 0.23f, 1.65f);
+                }
             }
             SimpleParticleType particle = switch (this) {
                 case HEARTS -> ParticleTypes.HEART;
@@ -64,7 +70,7 @@ final class Alerts {
 
     record Options(boolean sounds, boolean particles, int cooldownTicks, Map<String, Cue> events) {
         static Options parse(JsonObject input) {
-            var defaults = Map.of("comment", Cue.OFF, "join", Cue.OFF, "like", Cue.OFF,
+            var defaults = Map.of("comment", Cue.OFF, "join", Cue.PING, "like", Cue.PING,
                 "follow", Cue.HEARTS, "share", Cue.CELEBRATE, "gift", Cue.SPARKLE);
             if (input == null) return new Options(true, true, 20, defaults);
             var events = new java.util.HashMap<>(defaults);

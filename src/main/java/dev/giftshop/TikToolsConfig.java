@@ -20,7 +20,8 @@ record TikToolsConfig(Mode mode, String username, String recipient, Map<String, 
         try (var reader = Files.newBufferedReader(path)) { return parse(JsonParser.parseReader(reader).getAsJsonObject(), rules); }
     }
     static TikToolsConfig parse(JsonObject root, Set<String> rules) {
-        var mode = switch (TikToolsEvent.text(root, "mode")) {
+        var modeSetting = root.has("mode") ? TikToolsEvent.text(root, "mode") : "rewards";
+        var mode = switch (modeSetting) {
             case "off" -> Mode.OFF;
             case "read_only" -> Mode.READ_ONLY;
             case "rewards" -> Mode.REWARDS;

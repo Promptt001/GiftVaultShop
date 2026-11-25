@@ -7,7 +7,7 @@ import java.util.Set;
 
 final class PortraitAlerts {
     record Options(boolean enabled, int verticalPercent, Set<String> events) {
-        private static final Set<String> DEFAULTS = Set.of("gift", "follow", "share", "like");
+        private static final Set<String> DEFAULTS = Set.of("gift", "follow", "share", "like", "join");
         static Options parse(JsonObject config) {
             if (config == null) return new Options(true, 15, DEFAULTS);
             var flags = config.getAsJsonObject("events");
@@ -22,12 +22,14 @@ final class PortraitAlerts {
     }
 
     record Box(int x, int y, int width, int height) {
-        static Box layout(int width, int height, int percent) {
+        static Box layout(int width, int height, int percent) { return layout(width, height, percent, false); }
+        static Box layout(int width, int height, int percent, boolean scoreboard) {
             int cropWidth = Math.min(width, (int) (height * 9L / 16));
             // Keep four GUI units from each crop edge, with room for rounding at odd scales.
             int bannerWidth = Math.min(240, cropWidth - 8);
-            if (bannerWidth < 40 || height < 48) return null;
-            int y = 6 + (int) ((height - 48) * (long) Math.clamp(percent, 0, 100) / 100);
+            int top = scoreboard ? 27 : 6;
+            if (bannerWidth < 40 || height < top + 42) return null;
+            int y = top + (int) ((height - top - 42) * (long) Math.clamp(percent, 0, 100) / 100);
             return new Box((width - bannerWidth) / 2, y, bannerWidth, 36);
         }
     }
@@ -76,6 +78,8 @@ final class PortraitAlerts {
             }
             return null;
         }
+
+        long remaining(long now) { return Math.max(0, until - now); }
 
         void clear() {
             gifts.clear(); activity.clear(); liveLikes.clear(); testLikes.clear(); active = null; until = 0;

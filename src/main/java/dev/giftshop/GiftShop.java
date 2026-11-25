@@ -59,14 +59,17 @@ public final class GiftShop implements ModInitializer {
     private TikToolsFeed feed;
     private String liveStatus = "off";
     private String lastStatus;
-    private boolean warnedGift;
     private String lastGift;
+    private long lastLikeScore = -1;
     private final Alerts.Cooldown alertCooldown = new Alerts.Cooldown();
+    private final Alerts.Cooldown likeCooldown = new Alerts.Cooldown();
+    private final Alerts.Cooldown giftCooldown = new Alerts.Cooldown();
 
     @Override public void onInitialize() {
         instance = this;
         if (ShopMenu.TYPE == null) throw new IllegalStateException("Shop menu not registered");
         PayloadTypeRegistry.clientboundPlay().register(AlertBannerPacket.TYPE, AlertBannerPacket.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(LikeScorePacket.TYPE, LikeScorePacket.CODEC);
         CommandRegistrationCallback.EVENT.register((dispatcher, registry, environment) -> {
             dispatcher.register(literal("giftshop").requires(GiftShop::allowed).executes(c -> {
                 var p = c.getSource().getPlayerOrException();
@@ -77,6 +80,8 @@ public final class GiftShop implements ModInitializer {
             }));
             dispatcher.register(literal("giftlive").requires(GiftShop::allowed).then(literal("status").executes(c -> {
                 say(c.getSource().getPlayerOrException(), "TikTools: " + (feed == null ? liveStatus : live.mode() + " · " + feed.status()));
+                if (feed != null && feed.likesSnapshot().total() >= 0)
+                    say(c.getSource().getPlayerOrException(), "LIVE likes: " + feed.likesSnapshot().total());
                 if (lastGift != null) say(c.getSource().getPlayerOrException(), lastGift);
                 return 1;
             })));
@@ -133,9 +138,11 @@ public final class GiftShop implements ModInitializer {
             live = TikToolsConfig.OFF;
             liveStatus = "off";
             lastStatus = null;
-            warnedGift = false;
             lastGift = null;
             alertCooldown.reset();
+            giftCooldown.reset();
+            likeCooldown.reset();
+            lastLikeScore = -1;
         });
     }
 
@@ -147,6 +154,12 @@ public final class GiftShop implements ModInitializer {
         if (live.mode() == TikToolsConfig.Mode.OFF) return;
         if (server.isDedicatedServer() || server.isPublished()) {
             stopLive();
+            // Clear any previously visible counter when this world is opened to the network.
+            var profile = server.getSingleplayerProfile();
+            if (profile != null) {
+                var player = server.getPlayerList().getPlayer(profile.id());
+                if (player != null) sendLikeScore(player, -1);
+            }
             liveStatus = "disabled in a shared world";
             return;
         }
@@ -171,9 +184,18 @@ public final class GiftShop implements ModInitializer {
             if (headline.startsWith("LIVE room connected") || headline.contains("events may have been missed")
                 || headline.contains("rejected")) say(owner, "TikTools: " + headline);
         }
+        sendLikeScore(owner, settings.portrait().enabled() ? feed.likesSnapshot().total() : -1);
         for (var event : feed.drain()) {
             if (event.gift() == null) {
-                present(owner, event.kind(), event.text(), null, true, event.text(), "", event.likes());
+                String detail = "";
+                if (event.kind().equals("like")) {
+                    var before = wallet(owner);
+                    var after = before.liveLikes(live, event.room(), event.totalLikes(), event.likes(), feed.rewardsPaused());
+                    if (after != before) wallet(owner, after);
+                    if (after.points() > before.points()) detail = "+" + (after.points() - before.points()) + " points";
+                }
+                if (!event.text().isEmpty()) present(owner, event.kind(), event.text() + (detail.isEmpty() ? "" : " — " + detail),
+                    null, true, event.text(), detail, event.likes());
                 continue;
             }
             var g = event.gift();
@@ -181,17 +203,31 @@ public final class GiftShop implements ModInitializer {
                 + " · recipient " + (g.recipient().isEmpty() ? "missing" : g.recipient())
                 + " · count " + (g.count() == 0 ? "invalid" : g.count())
                 + " · transaction ID " + (g.transaction().isEmpty() ? "missing" : "present");
-            var reward = feed.rewardsPaused() ? null : g.reward(live);
-            if (reward != null) {
-                gift(owner, reward.rule(), reward.key(), reward.count(), reward.viewer(), true);
-            } else {
-                present(owner, "gift", event.text(), null, true);
-                if (live.mode() == TikToolsConfig.Mode.REWARDS && live.recipient().equals(g.recipient())
-                    && live.giftRules().containsKey(g.id()) && (g.transaction().isEmpty() || g.count() == 0) && !warnedGift) {
-                    warnedGift = true;
-                    say(owner, "TikTools gift skipped: missing transaction ID or invalid final count. No points changed.");
+            String reason = g.refusal(live, feed.rewardsPaused());
+            if (reason.isEmpty()) {
+                var reward = g.reward(live);
+                var before = wallet(owner);
+                if (before.gifts().contains(reward.key())) {
+                    lastGift += " · not credited: already processed";
+                    continue;
                 }
+                if (gift(owner, reward.rule(), reward.key(), reward.count(), reward.viewer(), true) != 0) {
+                    int delta = wallet(owner).points() - before.points();
+                    lastGift += " · applied: " + (delta > 0 ? "+" : "") + delta + " points"
+                        + (delta == 0 ? " (rule value or balance limit)" : "");
+                    continue;
+                }
+                reason = "local gift rule unavailable";
             }
+            lastGift += " · not credited: " + reason;
+            present(owner, "gift", event.text(), null, true);
+        }
+    }
+
+    private void sendLikeScore(ServerPlayer player, long total) {
+        if (total != lastLikeScore && ServerPlayNetworking.canSend(player, LikeScorePacket.TYPE)) {
+            ServerPlayNetworking.send(player, new LikeScorePacket(total));
+            lastLikeScore = total;
         }
     }
 
@@ -232,7 +268,10 @@ public final class GiftShop implements ModInitializer {
         var cue = override == null ? options.events().get(kind) : override;
         if (cue != Alerts.Cue.OFF && (options.sounds() || options.particles())
             && (options.sounds() || cue != Alerts.Cue.PING)
-            && alertCooldown.allow(p.level().getServer().getTickCount(), options.cooldownTicks())) cue.play(p, options);
+            && (kind.equals("gift") ? giftCooldown : kind.equals("like") ? likeCooldown : alertCooldown).allow(p.level().getServer().getTickCount(),
+                kind.equals("like") ? Math.max(60, options.cooldownTicks()) : options.cooldownTicks())) {
+            cue.play(p, options, kind);
+        }
         var portrait = settings.portrait();
         if (portrait.shows(kind) && allowed(p) && ServerPlayNetworking.canSend(p, AlertBannerPacket.TYPE))
             ServerPlayNetworking.send(p, new AlertBannerPacket(kind, bannerText, detail, liveEvent, portrait.verticalPercent(), likes));
@@ -247,13 +286,13 @@ public final class GiftShop implements ModInitializer {
         }
         var before = wallet(p);
         Wallet after;
-        try { after = before.gift(id, rule.points(), count); }
+        try { after = before.gift(id, liveEvent ? TikToolsEvent.liveGiftPoints(rule.points()) : rule.points(), count); }
         catch (IllegalArgumentException e) { say(p, "Invalid gift event identifier (1–128 letters, digits, dots, underscores, colons or hyphens; starts with a letter or digit)."); return 0; }
         if (before == after) { if (!liveEvent) say(p, "Already processed: " + id); return 0; }
         wallet(p, after);
         boolean applied = rule.effect() != null && p.addEffect(new MobEffectInstance(rule.effect(), rule.seconds() * 20, rule.level() - 1));
         int delta = after.points() - before.points();
-        String sent = ViewerText.clean(viewer, 48) + " sent " + count + " × " + key;
+        String sent = ViewerText.clean(viewer, liveEvent ? 100 : 48) + " sent " + count + " × " + key;
         String points = (delta > 0 ? "+" : "") + delta + " points";
         present(p, "gift", sent + " — " + points + (applied ? " · effect applied" : "") + ". Thanks!",
             rule.cue(), liveEvent, sent, points, 0);

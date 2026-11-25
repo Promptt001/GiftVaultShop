@@ -64,8 +64,8 @@
     "cooldownTicks": 20,
     "events": {
       "comment": "off",
-      "join": "off",
-      "like": "off",
+      "join": "ping",
+      "like": "ping",
       "follow": "hearts",
       "share": "celebrate",
       "gift": "sparkle"
@@ -79,7 +79,7 @@
       "follow": true,
       "like": true,
       "share": true,
-      "join": false,
+      "join": true,
       "gift": true
     }
   }
